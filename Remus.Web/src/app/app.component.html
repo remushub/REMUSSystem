@@ -1,0 +1,9 @@
+<label>
+    Value: 
+    <input type="text" [formControl]="formValue">
+</label>
+<button (click)="setValue()">Set Value</button>
+<br>
+<br>
+<button (click)="getValue()">Update Value</button>
+<p>{{value}}</p>

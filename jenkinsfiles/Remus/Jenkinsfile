@@ -1,0 +1,31 @@
+node {
+	
+	def app
+	
+	stage('Clone Repository') {
+		checkout scm
+	}
+	
+	stage('Build image') {
+		app = docker.build("remushub/aspnet-build", "-f ./dockerfiles/Remus/Dockerfile .")
+	}
+	
+	stage('Test') {
+		app.inside('-p 8000:80') {
+			sh 'sleep 60'
+		}
+	}
+	
+	stage('Approval') {
+		timeout(time: 1, unit: 'HOURS') {
+			input 'Upload to Docker Hub?'
+		}
+	}
+	
+	
+	stage('Push image') {
+		docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+			app.push('latest')
+		}
+	}
+}

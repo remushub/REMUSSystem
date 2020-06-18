@@ -1,0 +1,31 @@
+node {
+	
+	def app
+	
+	stage('Clone Repository') {
+		checkout scm
+	}
+	
+	stage('Build image') {
+		app = docker.build("remushub/angular-build", "-f ./dockerfiles/Remus.Web/Dockerfile .")
+	}
+	
+	stage('Test') {
+		app.inside('-p 4200:4200 -v node_modules -w /app') {
+			sh 'cd /app; ng serve --host 0.0.0.0'
+		}
+	}
+	
+	stage('Approval') {
+		timeout(time: 1, unit: 'HOURS') {
+			input 'Upload to Docker Hub?'
+		}
+	}
+	
+	
+	stage('Push image') {
+		docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
+			app.push('latest')
+		}
+	}
+}
