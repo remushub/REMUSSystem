@@ -15,17 +15,4 @@ node {
 			sh 'dotnet test /app' 
 		}
 	}
-	
-	stage('Approval') {
-		timeout(time: 1, unit: 'HOURS') {
-			input 'Upload to Docker Hub?'
-		}
-	}
-	
-	
-	stage('Push image') {
-		docker.withRegistry('https://registry.hub.docker.com', 'docker-hub-credentials') {
-			app.push('latest')
-		}
-	}
 }
