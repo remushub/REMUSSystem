@@ -15,10 +15,4 @@ node {
 			sh 'dotnet test /app' 
 		}
 	}
-
-	stage('Prompt') {
-		timeout(time: 1, unit: 'HOURS') {
-			input 'Finish Pipeline?'
-		}
-	}
 }
