@@ -1,0 +1,18 @@
+#make docker volume for jira service desk data:
+docker volume create --name jiravolume
+
+#command for jira service desk with H2 Database:
+docker run -v jiravolume:/var/atlassian/application-data/jira --name="jira" -e JVM_MAXIMUM_MEMORY=1g -d -p 8080:8080 atlassian/jira-servicedesk
+#JVM flag prevents 'out of heap memory' error.
+
+
+#Create MySQL container for jira service desk:
+docker run --name jira-mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=password -e MYSQL_USER=jira -e MYSQL_PASSWORD=password -e MYSQL_DATABASE=jira -d mysql
+
+#Run Jira Service Desk with MySQL Database:
+docker run -v jiravolume:/var/atlassian/application-data/jira --name="jira" -e ATL_JDBC_URL=http://192.168.99.100:3306 -e ATL_JDBC_USER=jira -e ATL_JDBC_PASSWORD=password -e ATL_DB_DRIVER=com.mysql.jdbc.Driver -e ATL_DB_TYPE=mysql -e JVM_MAXIMUM_MEMORY=1g -d -p 8080:8080 atlassian/jira-servicedesk
+
+#Copy database driver onto jira container 
+docker stop jira
+docker cp C:\Users\user\Downloads\mysql-connector-java-8.0.21\mysql-connector-java-8.0.21\mysql-connector-java-8.0.21.jar jira:/opt/atlassian/jira/lib
+docker start jira
