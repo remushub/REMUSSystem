@@ -1,0 +1,158 @@
+**********************************
+Installing dotnet etc on Fedora 31
+**********************************
+
+Source: 
+https://docs.microsoft.com/en-us/dotnet/core/install/linux-fedora#fedora-31-
+
+sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+sudo wget -O /etc/yum.repos.d/microsoft-prod.repo https://packages.microsoft.com/config/fedora/31/prod.repo
+sudo dnf install dotnet-sdk-3.1
+
+
+Pulling down, testing and running an example project:
+
+git clone https://github.com/remushub/REMUSSystem.git
+cd REMUSSystem/
+dotnet restore
+dotnet test
+cd Remus/
+dotnet run
+
+***************************
+Install Docker on Fedora 31
+***************************
+
+sudo dnf install docker-ce docker-ce-cli containerd.io
+
+sudo grubby --update-kernel=ALL --args="systemd.unified_cgroup_hierarchy=0"
+
+reboot
+
+sudo systemctl start[and enable] docker
+
+
+*****************
+Jenkins on Docker
+*****************
+
+sudo docker pull remushub/jenkins
+
+mkdir /home/remus/jenkins
+chmod 777 /home/remus/jenkins
+
+sudo docker run --name jenkins -d -p 8080:8080 -p 50000:50000 -v /home/remus/jenkins:/var/jenkins_home -v /var/run/docker.sock:/var/run/docker.sock -v $(which docker):$(which docker) remushub/jenkins
+
+Ran into a bunch of problems with installing 'suggested packages' updating Jenkins and installing plugins seemed to rectify this.
+
+Installed Docker Commons Plugin
+Installed Docker Pipeline Plugin
+
+Creating a pipeline:
+New Item > Pipeline
+
+Under General > Tick "This project is parameterised" 
+Add String Parameter
+Name > BRANCH 
+Default Value > master
+
+Under Pipeline > Definition > Pipeline script from SCM
+Repositories > Repository URL > git clone address
+Branches to Build > Branch Specifier > ${BRANCH} 
+Script Path > jenkinsfile location in repository.
+Untick Lightweight checkout 
+
+****************************
+Additional Jenkins Executors
+****************************
+Source:
+https://plugins.jenkins.io/docker-plugin/
+
+sudo docker pull jenkins/ssh-slave
+
+Install Docker Plugin
+
+Manage Jenkins > System Configuration > Manage Nodes and Clouds > Configure Clouds
+
+Add new cloud > Docker
+
+Docker Cloud details >
+Name > docker 
+Docker Host URI > unix:///var/run/docker.sock
+
+
+Docker Agent Templates > Add Docker Template >
+Labels > Blank
+Enabled > Ticked
+Name > Blank
+Docker Image > jenkins/ssh-slave
+Instance Capacity > Blank
+Remote File System Root > Blank
+Usage > Use this node as much as possible
+Idle timeout > 10
+Connect method > Connect with SSH
+Remove volumes > unticked
+Pull stratagy > Pull all images every time
+Pull timeout > 300
+Node
+
+
+
+
+Run the following commands on host to allow jenkins to run docker without permission issues:
+sudo useradd jenkins
+sudo groupadd docker
+sudo gpasswd -a jenkins docker
+sg docker -c "bash"
+sudo usermod -aG docker jenkins
+
+
+*******************
+SonarQube on Docker
+*******************
+
+SonarQube needs more space for its elastic search 
+
+Source: 
+https://hub.docker.com/_/sonarqube/
+https://medium.com/@HoussemDellai/setup-sonarqube-in-a-docker-container-3c3908b624df
+
+sysctl -w vm.max_map_count=262144
+sysctl -w fs.file-max=65536
+ulimit -n 65536
+ulimit -u 4096
+
+Run/Install sonarqube (with embedded H2 & elastic)
+
+sudo docker run --stop-timeout 3600 --name="sonarqube" -p 9000:9000 -p 9092:9092 -d sonarqube
+^This command did not run well on Windows 7, but fine and fast on big work laptop with Fedora 31.
+
+SonarQube with PostgreSQL:
+
+Source: 
+https://gist.github.com/ceduliocezar/b3bf93125024482b5f2f479696842046
+https://docs.sonarqube.org/latest/setup/install-server/
+
+sudo docker network create sonarnet
+
+sudo docker run --name sonar-postgres -e POSTGRES_USER=sonar -e POSTGRES_PASSWORD=sonar -d -p 5432:5432 --net sonarnet postgres
+
+sudo docker run --name sonarqube --stop-timeout 3600 -p 9000:9000 -p 9092:9092 -e SONARQUBE_JDBC_USERNAME=sonar -e SONARQUBE_JDBC_PASSWORD=sonar -e SONARQUBE_JDBC_URL=jdbc:postgresql://sonar-postgres:5432/sonar -d --net sonarnet sonarqube
+
+
+*****************************
+SonarScanner Docker Container
+*****************************
+
+***********************
+Run TFS agent in Docker
+***********************
+
+Source:
+https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/docker?view=azure-devops
+
+
+
+
+
+
